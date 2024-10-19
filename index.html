@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive LOVE Grid</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700&display=swap" rel="stylesheet">
+    <style>
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        overflow: hidden;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+    }
+    #header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        font-family: 'Inter', sans-serif;
+        height: 30px;
+        flex-shrink: 0;
+    }
+    #main-text {
+        flex-grow: 1;
+        text-align: center;
+    }
+    #hint {
+        cursor: help;
+        position: relative;
+    }
+    #hint:hover::after {
+        content: "Love can be found in any direction! Adjust your window size to make it easier, harder, or refresh to reset.";
+        position: absolute;
+        right: 0;
+        top: 100%;
+        background-color: #f9f9f9;
+        border: 1px solid #ccc;
+        padding: 5px;
+        border-radius: 5px;
+        white-space: normal;
+                max-width: 220px;
+                width: max-content;
+                font-size: 0.8rem;
+                line-height: 1.2;
+                z-index: 1000;
+            }
+
+                
+    #grid-container {
+        display: grid;
+        flex-grow: 1;
+        width: 100%;
+        gap: 1px;
+        padding: 10px;
+        box-sizing: border-box;
+        justify-content: center;
+        align-content: center;
+    }
+    .letter {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: 300;
+        color: #333;
+        font-family: 'Inter', sans-serif;
+        aspect-ratio: 1 / 1;
+        font-size: 0.8rem;
+    }
+    .love-letter {
+        cursor: pointer;
+        font-weight: bold;
+    }
+    .love-letter:hover {
+        text-decoration: underline;
+    }
+    .highlighted {
+        background-color: #ff0000;
+        transition: background-color 0.3s ease;
+    }
+    #message-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+    #message-box {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        font-family: 'Inter', sans-serif;
+        max-width: 80%;
+        max-height: 80%;
+        overflow-y: auto;
+    }
+    #check-book-btn {
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-family: 'Inter', sans-serif;
+        text-decoration: none;
+        display: inline-block;
+    }
+    #check-book-btn:hover {
+        background-color: #45a049;
+    }
+    #book-image {
+        max-width: 100%;
+        height: auto;
+        margin-top: 20px;
+    }
+    #book-title {
+        font-weight: 700;
+        margin-top: 20px;
+        font-size: 1.2em;
+    }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <div></div>
+        <div id="main-text">Finding Love: The Ultimate (Word) Search</div>
+        <div id="hint">?</div>
+    </div>
+    <div id="grid-container"></div>
+    <div id="message-overlay">
+        <div id="message-box">
+            <h2>Congratulations!<br> You found LOVE!</h2>
+            <p>I think you are ready...</p>
+            <a href="https://amzn.to/4eR1lDy" id="check-book-btn" target="_blank">Check out the book on Amazon!</a>
+            <p id="book-title">Finding Love: The Ultimate (Word) Search</p>
+            <img id="book-image" src="sybren/desktop/website/book.jpg" alt="Finding Love: The Ultimate (Word) Search">
+        </div>
+    </div>
+
+    <script>
+    const gridContainer = document.getElementById('grid-container');
+    const letters = ['L', 'O', 'V', 'E'];
+    const cellSize = 30; // Fixed cell size in pixels
+
+    function updateGrid() {
+        gridContainer.innerHTML = '';
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight - 60; // Subtract header height
+        
+        const columns = Math.max(4, Math.floor((viewportWidth - 30) / cellSize));
+        const rows = Math.max(4, Math.floor((viewportHeight - 30) / cellSize));
+
+        gridContainer.style.gridTemplateColumns = `repeat(${columns}, ${cellSize}px)`;
+        gridContainer.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+
+        const directions = [
+            [0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]
+        ];
+
+        let grid = createInitialGrid(rows, columns);
+        placeLOVE(grid, rows, columns, directions);
+        fillRemainingCells(grid);
+
+        renderGrid(grid);
+    }
+
+    function createInitialGrid(rows, columns) {
+        return Array(rows).fill().map(() => Array(columns).fill(null));
+    }
+
+    function placeLOVE(grid, rows, columns, directions) {
+        let startRow, startCol, direction;
+        let validPlacement = false;
+
+        while (!validPlacement) {
+            startRow = Math.floor(Math.random() * (rows - 3));
+            startCol = Math.floor(Math.random() * (columns - 3));
+            direction = directions[Math.floor(Math.random() * directions.length)];
+
+            validPlacement = true;
+            for (let i = 0; i < 4; i++) {
+                const row = startRow + i * direction[0];
+                const col = startCol + i * direction[1];
+                if (row < 0 || row >= rows || col < 0 || col >= columns) {
+                    validPlacement = false;
+                    break;
+                }
+            }
+
+            if (validPlacement) {
+                for (let i = 0; i < 4; i++) {
+                    const row = startRow + i * direction[0];
+                    const col = startCol + i * direction[1];
+                    grid[row][col] = { letter: letters[i], isLove: true };
+                }
+            }
+        }
+    }
+
+    function fillRemainingCells(grid) {
+        const rows = grid.length;
+        const columns = grid[0].length;
+
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < columns; col++) {
+                if (!grid[row][col]) {
+                    let validLetter;
+                    do {
+                        validLetter = letters[Math.floor(Math.random() * letters.length)];
+                    } while (wouldFormLOVE(grid, row, col, validLetter));
+                    
+                    grid[row][col] = { letter: validLetter, isLove: false };
+                }
+            }
+        }
+    }
+
+    function wouldFormLOVE(grid, row, col, letter) {
+        const directions = [
+            [0, 1], [1, 0], [1, 1], [-1, 1],
+            [0, -1], [-1, 0], [-1, -1], [1, -1]
+        ];
+
+        for (let [dx, dy] of directions) {
+            if (checkDirection(grid, row, col, letter, dx, dy) ||
+                checkDirection(grid, row, col, letter, -dx, -dy)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function checkDirection(grid, row, col, letter, dx, dy) {
+        const lovePattern = 'LOVE';
+        let sequence = letter;
+        
+        for (let i = 1; i < 4; i++) {
+            const newRow = row + i * dy;
+            const newCol = col + i * dx;
+            
+            if (newRow < 0 || newRow >= grid.length || newCol < 0 || newCol >= grid[0].length) {
+                return false;
+            }
+            
+            const cell = grid[newRow][newCol];
+            if (!cell) return false;
+            
+            sequence += cell.letter;
+        }
+        
+        return sequence === lovePattern;
+    }
+
+    function renderGrid(grid) {
+        let loveLetters = [];
+        grid.forEach(row => {
+            row.forEach(cell => {
+                const letterElement = document.createElement('div');
+                letterElement.classList.add('letter');
+                letterElement.textContent = cell.letter;
+                if (cell.isLove) {
+                    letterElement.classList.add('love-letter');
+                    loveLetters.push(letterElement);
+                    letterElement.onclick = function() {
+                        highlightLOVE(loveLetters);
+                    };
+                }
+                gridContainer.appendChild(letterElement);
+            });
+        });
+    }
+
+    function highlightLOVE(loveLetters) {
+        loveLetters.forEach(letter => {
+            letter.classList.add('highlighted');
+        });
+        setTimeout(() => {
+            loveLetters.forEach(letter => {
+                letter.classList.remove('highlighted');
+            });
+            showMessage();
+        }, 500);
+    }
+
+    function showMessage() {
+        const messageOverlay = document.getElementById('message-overlay');
+        messageOverlay.style.display = 'flex';
+        messageOverlay.onclick = function(event) {
+            if (event.target === messageOverlay) {
+                messageOverlay.style.display = 'none';
+            }
+        };
+    }
+
+    updateGrid();
+    window.addEventListener('resize', updateGrid);
+    </script>
+</body>
+</html>
